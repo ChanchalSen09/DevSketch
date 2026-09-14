@@ -10,15 +10,16 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:devsketch.open",
+    "onCommand:devsketch.openBoard",
     "onView:devsketch.sidebar"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "devsketch.open",
-        "title": "DevSketch: Open Whiteboard"
+        "command": "devsketch.openBoard",
+        "title": "Open DevSketch Whiteboard",
+        "category": "DevSketch"
       }
     ],
     "viewsContainers": {

@@ -1,4 +1,8 @@
 import * as vscode from "vscode";
+import {
+  getDevSketchWebviewHtml,
+  getWebviewDistUri,
+} from "../webview/webviewHtml";
 
 export class DevSketchProvider
   implements vscode.WebviewViewProvider
@@ -6,68 +10,39 @@ export class DevSketchProvider
   public static readonly viewType = "devsketch.sidebar";
 
   constructor(
-    private readonly extensionUri: vscode.Uri
+    private readonly extensionUri: vscode.Uri,
+    private readonly outputChannel: vscode.OutputChannel,
+    private readonly openBoard: () => void
   ) {}
 
   resolveWebviewView(
     webviewView: vscode.WebviewView
-  ) {
+  ): void {
     const webview = webviewView.webview;
 
     webview.options = {
       enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(
-          this.extensionUri,
-          "webview",
-          "dist"
-        ),
-      ],
+      enableCommandUris: true,
+      localResourceRoots: [getWebviewDistUri(this.extensionUri)],
     };
 
-    const distPath = vscode.Uri.joinPath(
-      this.extensionUri,
-      "webview",
-      "dist"
-    );
-
-    const indexPath = vscode.Uri.joinPath(
-      distPath,
-      "index.html"
-    );
-
-    webview.html = this.getHtml(
+    webview.html = getDevSketchWebviewHtml({
+      extensionUri: this.extensionUri,
       webview,
-      indexPath,
-      distPath
-    );
-  }
-
-  private getHtml(
-    webview: vscode.Webview,
-    indexPath: vscode.Uri,
-    distPath: vscode.Uri
-  ) {
-    let html = require("fs").readFileSync(
-      indexPath.fsPath,
-      "utf-8"
-    );
-
-    html = html.replace(
-      /(src|href)="([^"]+)"/g,
-      (_: string, type: string, url: string) => {
-        const assetPath = vscode.Uri.joinPath(
-          distPath,
-          url
+      surface: "sidebar",
+    });
+    webview.onDidReceiveMessage(
+      (message: { type?: string }) => {
+        this.outputChannel.appendLine(
+          `[DevSketch] Sidebar message received: ${JSON.stringify(message)}`
         );
-
-        const webviewUri =
-          webview.asWebviewUri(assetPath);
-
-        return `${type}="${webviewUri}"`;
-      }
+        if (message.type === "openBoard") {
+          this.outputChannel.appendLine("[DevSketch] Sidebar requested opening whiteboard.");
+          this.openBoard();
+        }
+      },
+      undefined
     );
-
-    return html;
+    this.outputChannel.appendLine("[DevSketch] Sidebar webview resolved.");
   }
 }
